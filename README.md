@@ -14,3 +14,7 @@ Then run it like this:
 ```
 chromedriver --port=4444
 ```
+
+## Permission
+Permission to scrape granted by Jisho's admin Kimtaro:
+ *     https://jisho.org/forum/54fefc1f6e73340b1f160000-is-there-any-kind-of-search-api
