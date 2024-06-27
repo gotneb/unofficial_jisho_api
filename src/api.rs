@@ -1,3 +1,9 @@
+/*
+ * This module encapsulates the official Jisho.org API
+ * Permission to scrape granted by Jisho's admin Kimtaro:
+ *     https://jisho.org/forum/54fefc1f6e73340b1f160000-is-there-any-kind-of-search-api
+ */
+
 use thirtyfour_sync::{http::reqwest_sync::ReqwestDriverSync, prelude::*, GenericWebDriver};
 
 const SCRAPE_BASE_URI: &'static str = "https://jisho.org/search/";
