@@ -37,6 +37,8 @@ impl YomiExample {
     }
 }
 
+// Should they really use `String`? Or should they use `&str`
+// I don't know the difference :(
 #[derive(Debug)]
 pub struct Kanji {
     pub taught: String,
@@ -179,8 +181,8 @@ impl JishoAPI {
     }
 
     /// Helper function to extract `kunyomi` and `onyomi`
-    fn extract_yomi(&self, css_path: &str) -> Vec<String> {
-        let elems = self.driver.find_elements(By::Css(css_path)).unwrap();
+    fn extract_yomi(&self, css_locator: &str) -> Vec<String> {
+        let elems = self.driver.find_elements(By::Css(css_locator)).unwrap();
 
         elems
             .iter()
