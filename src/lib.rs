@@ -159,4 +159,12 @@ mod tests {
         assert_eq!(result.onyomi_examples[3].hiragana, "ゲッコウ");
         assert_eq!(result.onyomi_examples[3].meaning, "excitement, exasperation, indignation, rage, fury");
     }
+
+    #[test]
+    fn search_day_kanji_examples() {
+        let api = JishoAPI::new();
+
+        let examples = api.search_for_examples("日".into());
+        assert_eq!(examples[0].english, "Today is the night of the full moon. The bright, clear, full moon that appears in the autumn night sky is beautiful.");
+    }
 }

@@ -5,6 +5,7 @@
  */
 
 use thirtyfour_sync::{http::reqwest_sync::ReqwestDriverSync, prelude::*, GenericWebDriver};
+use log::info;
 
 const SCRAPE_BASE_URI: &'static str = "https://jisho.org/search/";
 
@@ -40,6 +41,42 @@ impl YomiExample {
             hiragana,
             meaning,
         }
+    }
+}
+
+struct Example {
+    lifted: String,
+    unlifted: String,
+}
+
+pub struct Sentence {
+    kanji: String,
+    kana: String,
+    pub english: String,
+    pieces: Vec<Example>,
+}
+
+impl Sentence {
+    fn new(div: &WebElement) -> Self {
+        println!("Yaay, I'm in parse_example_div");
+
+        let english = div
+            .find_element(By::ClassName("div.english_sentence"))
+            .unwrap()
+            .inner_html()
+            .unwrap();
+        println!("English: {}", english);
+
+        Self {
+            kanji: "".into(),
+            kana: "".into(),
+            english,
+            pieces: Vec::new(),
+        }
+    }
+
+    fn get_kanji_and_kana(&self) -> (String, String) {
+        (todo!(), todo!())
     }
 }
 
@@ -193,6 +230,20 @@ impl JishoAPI {
         elems
             .iter()
             .map(|e| String::from(e.inner_html().unwrap()))
+            .collect()
+    }
+
+    pub fn search_for_examples(&self, kanji: String) -> Vec<Sentence> {
+        let url = format!("{}/{}%23sentences", SCRAPE_BASE_URI, kanji);
+        info!("url: {}", url);
+        self.driver.get(url).unwrap();
+
+        let divs = self
+            .driver
+            .find_elements(By::ClassName("div.sentence_content"))
+            .unwrap();
+        divs.iter()
+            .map(|div| Sentence::new(&div))
             .collect()
     }
 }
