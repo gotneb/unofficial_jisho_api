@@ -4,8 +4,11 @@
  *     https://jisho.org/forum/54fefc1f6e73340b1f160000-is-there-any-kind-of-search-api
  */
 
+use std::collections::HashMap;
+
 use reqwest::Error;
 use scraper::{ElementRef, Html, Selector};
+use soup::{NodeExt, QueryBuilderExt, Soup};
 
 const SCRAPE_BASE_URI: &'static str = "https://jisho.org/search/";
 
@@ -44,34 +47,91 @@ impl YomiExample {
     }
 }
 
+pub struct Piece {
+    pub lifted: String,
+    pub unlifted: String,
+}
+
 pub struct KanjiExample {
     pub english: String,
+    pub kanji: String,
+    pub kana: String,
+    pub pieces: Vec<Piece>,
 }
 
 impl KanjiExample {
     fn new(div: &ElementRef) -> Self {
+        let ul_selector = Selector::parse("ul").unwrap();
+        let ul = div.select(&ul_selector).collect::<Vec<_>>()[0];
+
         let english_selector = Selector::parse("span.english").unwrap();
         let english = div.select(&english_selector).collect::<Vec<_>>()[0].inner_html();
+        let (kanji, kana, pieces) = Self::get_kanji_kana_and_pieces(&ul);
 
-        // Self::get_kanji_and_kana(div);
-
-        Self { english }
+        Self {
+            english,
+            kanji,
+            kana,
+            pieces,
+        }
     }
 
-    // TODO: Implment
-    // fn get_kanji_and_kana(div: &ElementRef) {
-    //     let ul_selector = Selector::parse("ul").unwrap();
-    //     let ul = div.select(&ul_selector).collect::<Vec<_>>()[0];
+    fn get_kanji_kana_and_pieces(ul: &ElementRef) -> (String, String, Vec<Piece>) {
+        let soup = Soup::new(&ul.inner_html());
 
-    //     let mut kanji = String::new();
+        // That's unefficient... It returns the whole phrase with furigana and kanji together...
+        // Again... Unefficient. But I wasn't able to think in a more efficent way :(
+        let mut results = soup
+            .tag(true)
+            .find_all()
+            .map(|tag| tag.text())
+            .collect::<Vec<_>>();
 
-    //     for e in ul.inner_html() {
-    //         println!("Node: {}", e.html());
-    //     }
-    //     println!("");
+        let result = results.remove(0);
+        let kanji_to_furigana = Self::get_kanji_furigana_hash(&ul);
 
-    //     panic!("aaaa");
-    // }
+        let mut kanji = result.clone();
+        for (_, value) in &kanji_to_furigana {
+            kanji = kanji.replace(value, "");
+        }
+
+        let mut hiragana = kanji.clone();
+        for (key, value) in &kanji_to_furigana {
+            hiragana = hiragana.replace(key, value);
+        }
+
+        let pieces = Self::get_pieces(&kanji_to_furigana);
+
+        (kanji.trim().into(), hiragana.trim().into(), pieces)
+    }
+
+    fn get_kanji_furigana_hash(ul: &ElementRef) -> HashMap<String, String> {
+        let furigana_selector = Selector::parse("span.furigana").unwrap();
+        let kanji_selector = Selector::parse("span.unlinked").unwrap();
+
+        let mut kanji_to_furigana = HashMap::new();
+
+        let furigana = ul.select(&furigana_selector).collect::<Vec<_>>();
+        let kanji = ul.select(&kanji_selector).collect::<Vec<_>>();
+
+        for index in 0..kanji.len() {
+            kanji_to_furigana.insert(kanji[index].inner_html(), furigana[index].inner_html());
+        }
+
+        kanji_to_furigana
+    }
+
+    fn get_pieces(map: &HashMap<String, String>) -> Vec<Piece> {
+        let mut p = Vec::new();
+        for (key, value) in map {
+            let piece = Piece {
+                unlifted: key.clone(),
+                lifted: value.clone(),
+            };
+            p.push(piece)
+        }
+        p
+    }
 }
 
 // I'm wondering... Should this struct use 'String' or '&str'?
