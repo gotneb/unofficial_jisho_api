@@ -44,8 +44,38 @@ impl YomiExample {
     }
 }
 
-// I'm wondenring... Should this struct use 'String' or '&str'?
-// (Guess I'll have to study me about strings...)
+pub struct KanjiExample {
+    pub english: String,
+}
+
+impl KanjiExample {
+    fn new(div: &ElementRef) -> Self {
+        let english_selector = Selector::parse("span.english").unwrap();
+        let english = div.select(&english_selector).collect::<Vec<_>>()[0].inner_html();
+
+        // Self::get_kanji_and_kana(div);
+
+        Self { english }
+    }
+
+    // TODO: Implment
+    // fn get_kanji_and_kana(div: &ElementRef) {
+    //     let ul_selector = Selector::parse("ul").unwrap();
+    //     let ul = div.select(&ul_selector).collect::<Vec<_>>()[0];
+
+    //     let mut kanji = String::new();
+
+    //     for e in ul.inner_html() {
+    //         println!("Node: {}", e.html());
+    //     }
+    //     println!("");
+
+    //     panic!("aaaa");
+    // }
+}
+
+// I'm wondering... Should this struct use 'String' or '&str'?
+// (Guess I'll have to study more about strings...)
 #[derive(Debug)]
 pub struct Kanji {
     pub taught: String,
@@ -176,5 +206,15 @@ impl JishoAPI {
     fn kanji_parts(html: &Html) -> Vec<String> {
         let selector = Selector::parse("div.radicals dl.dictionary_entry.on_yomi dd a").unwrap();
         Self::extract_yomi(html, &selector)
+    }
+
+    pub fn search_for_examples(kanji: String) -> Result<Vec<KanjiExample>, Error> {
+        let url = format!("{}/{}%23sentences", SCRAPE_BASE_URI, kanji);
+        let html = reqwest::blocking::get(&url)?.text()?;
+        let html = Html::parse_document(&html);
+        let divs = Selector::parse("div.sentence_content").unwrap();
+
+        let divs = html.select(&divs);
+        Ok(divs.map(|div| KanjiExample::new(&div)).collect())
     }
 }
