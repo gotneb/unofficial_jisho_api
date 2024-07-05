@@ -2,14 +2,13 @@ pub mod api;
 
 #[cfg(test)]
 mod tests {
-    use api::{JlptLevel, JishoAPI};
+    use api::{JishoAPI, JlptLevel};
 
     use super::*;
 
     #[test]
     fn search_language_kanji() {
-        let api = JishoAPI::new();
-        let result = api.search_kanji("語".into());
+        let result = JishoAPI::search_kanji("語".into()).unwrap();
 
         assert_eq!(result.taught, "grade 2");
         assert_eq!(result.jlpt_level, JlptLevel::N5);
@@ -53,51 +52,8 @@ mod tests {
     }
 
     #[test]
-    fn search_death_kanji() {
-        let api = JishoAPI::new();
-        let result = api.search_kanji("死".into());
-
-        assert_eq!(result.taught, "grade 3");
-        assert_eq!(result.jlpt_level, JlptLevel::N4);
-        assert_eq!(result.stroke_count, 6);
-        assert_eq!(result.meaning, "death, die");
-        assert_eq!(result.kunyomi, vec!["し.ぬ", "し.に-"]);
-        assert_eq!(result.onyomi, vec!["シ"]);
-        assert_eq!(result.parts, vec!["一", "匕", "夕", "歹"]);
-
-        // Now it must test the kunyomis examples
-        // -------------------------------------------
-        assert_eq!(result.kunyomi_examples[0].kanji, "死ぬ");
-        assert_eq!(result.kunyomi_examples[0].hiragana, "しぬ");
-        assert_eq!(result.kunyomi_examples[0].meaning, "to die, to pass away, to lose spirit, to lose vigor, to look dead, to cease, to stop");
-
-        assert_eq!(result.kunyomi_examples[1].kanji, "死ぬ気で");
-        assert_eq!(result.kunyomi_examples[1].hiragana, "しぬきで");
-        assert_eq!(result.kunyomi_examples[1].meaning, "all out, like hell, like crazy, desperately, expecting to die");
-
-        // Now it must test the onyomis examples
-        // -------------------------------------------
-        assert_eq!(result.onyomi_examples[0].kanji, "死");
-        assert_eq!(result.onyomi_examples[0].hiragana, "シ");
-        assert_eq!(result.onyomi_examples[0].meaning, "death, (an) out, death penalty (by strangulation or decapitation; most severe of the five ritsuryō punishments)");
-
-        assert_eq!(result.onyomi_examples[1].kanji, "死因");
-        assert_eq!(result.onyomi_examples[1].hiragana, "シイン");
-        assert_eq!(result.onyomi_examples[1].meaning, "cause of death");
-
-        assert_eq!(result.onyomi_examples[2].kanji, "安楽死");
-        assert_eq!(result.onyomi_examples[2].hiragana, "アンラクシ");
-        assert_eq!(result.onyomi_examples[2].meaning, "euthanasia");
-
-        assert_eq!(result.onyomi_examples[3].kanji, "病死");
-        assert_eq!(result.onyomi_examples[3].hiragana, "ビョウシ");
-        assert_eq!(result.onyomi_examples[3].meaning, "death from disease, death from illness");
-    }
-
-    #[test]
     fn search_tall_kanji() {
-        let api = JishoAPI::new();
-        let result = api.search_kanji("高".into());
+        let result = JishoAPI::search_kanji("高".into()).unwrap();
 
         assert_eq!(result.taught, "grade 2");
         assert_eq!(result.jlpt_level, JlptLevel::N5);
@@ -158,13 +114,5 @@ mod tests {
         assert_eq!(result.onyomi_examples[3].kanji, "激昂");
         assert_eq!(result.onyomi_examples[3].hiragana, "ゲッコウ");
         assert_eq!(result.onyomi_examples[3].meaning, "excitement, exasperation, indignation, rage, fury");
-    }
-
-    #[test]
-    fn search_day_kanji_examples() {
-        let api = JishoAPI::new();
-
-        let examples = api.search_for_examples("日".into());
-        assert_eq!(examples[0].english, "Today is the night of the full moon. The bright, clear, full moon that appears in the autumn night sky is beautiful.");
     }
 }

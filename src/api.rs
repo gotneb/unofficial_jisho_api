@@ -4,8 +4,8 @@
  *     https://jisho.org/forum/54fefc1f6e73340b1f160000-is-there-any-kind-of-search-api
  */
 
-use thirtyfour_sync::{http::reqwest_sync::ReqwestDriverSync, prelude::*, GenericWebDriver};
-use log::info;
+use reqwest::Error;
+use scraper::{ElementRef, Html, Selector};
 
 const SCRAPE_BASE_URI: &'static str = "https://jisho.org/search/";
 
@@ -26,8 +26,8 @@ pub struct YomiExample {
 }
 
 impl YomiExample {
-    fn new(element: &WebElement) -> Self {
-        let text = element.inner_html().unwrap();
+    pub fn new(e: &ElementRef) -> Self {
+        let text = e.inner_html();
         let text = text.trim();
         let mut examples: Vec<String> = text.split("\n").map(|e| String::from(e.trim())).collect();
 
@@ -44,44 +44,8 @@ impl YomiExample {
     }
 }
 
-struct Example {
-    lifted: String,
-    unlifted: String,
-}
-
-pub struct Sentence {
-    kanji: String,
-    kana: String,
-    pub english: String,
-    pieces: Vec<Example>,
-}
-
-impl Sentence {
-    fn new(div: &WebElement) -> Self {
-        println!("Yaay, I'm in parse_example_div");
-
-        let english = div
-            .find_element(By::ClassName("div.english_sentence"))
-            .unwrap()
-            .inner_html()
-            .unwrap();
-        println!("English: {}", english);
-
-        Self {
-            kanji: "".into(),
-            kana: "".into(),
-            english,
-            pieces: Vec::new(),
-        }
-    }
-
-    fn get_kanji_and_kana(&self) -> (String, String) {
-        (todo!(), todo!())
-    }
-}
-
-// Should they really use `String`? Or should they use `&str`
-// I don't know the difference :(
+// I'm wondenring... Should this struct use 'String' or '&str'?
+// (Guess I'll have to study me about strings...)
 #[derive(Debug)]
 pub struct Kanji {
     pub taught: String,
@@ -96,154 +60,121 @@ pub struct Kanji {
     pub url: String,
 }
 
-pub struct JishoAPI {
-    driver: GenericWebDriver<ReqwestDriverSync>,
-}
-
-// impl Drop for API {
-//     fn drop(&mut self) {
-//         self.driver.quit().unwrap();
-//     }
-// }
+pub struct JishoAPI;
 
 impl JishoAPI {
-    pub fn new() -> Self {
-        let caps = DesiredCapabilities::chrome();
-        let driver = WebDriver::new("http://localhost:4444", &caps).unwrap();
-        Self { driver }
-    }
-
-    pub fn search_kanji(&self, kanji: String) -> Kanji {
+    pub fn search_kanji(kanji: String) -> Result<Kanji, Error> {
         let url = format!("{}/{} %23kanji", SCRAPE_BASE_URI, kanji);
+        let html = reqwest::blocking::get(&url)?.text()?;
 
-        self.driver.get(&url).unwrap();
+        let html = Html::parse_document(&html);
 
-        let (on_example, kun_example) = self.extract_examples();
+        let (onyomi_example, kunyomi_example) = Self::extract_examples(&html);
 
-        Kanji {
-            taught: self.taught_in(),
-            jlpt_level: self.jlpt_level(),
-            stroke_count: self.stroke_count(),
-            meaning: self.meaning(),
-            kunyomi: self.kunyomi(),
-            kunyomi_examples: kun_example,
-            onyomi: self.onyomi(),
-            onyomi_examples: on_example,
-            parts: self.kanji_parts(),
+        Ok(Kanji {
+            taught: Self::taught_in(&html),
+            jlpt_level: Self::jlpt_level(&html),
+            stroke_count: Self::stroke_count(&html),
+            meaning: Self::meaning(&html),
+            kunyomi: Self::kunyomi(&html),
+            onyomi: Self::onyomi(&html),
+            kunyomi_examples: kunyomi_example,
+            onyomi_examples: onyomi_example,
+            parts: Self::kanji_parts(&html),
             url,
-        }
+        })
     }
 
     /// Scrapes `grade`
-    fn taught_in(&self) -> String {
-        let elem = self
-            .driver
-            .find_element(By::Css("div.grade strong"))
-            .unwrap();
+    fn taught_in(html: &Html) -> String {
+        let selector = Selector::parse("div.grade strong").unwrap();
+        let text = html.select(&selector).collect::<Vec<_>>()[0];
 
-        elem.inner_html().unwrap()
+        text.inner_html()
     }
 
     /// Scrapes `JLPT level`
-    fn jlpt_level(&self) -> JlptLevel {
-        let elem = self
-            .driver
-            .find_element(By::Css("div.jlpt strong"))
-            .unwrap();
+    fn jlpt_level(html: &Html) -> JlptLevel {
+        let selector = Selector::parse("div.jlpt strong").unwrap();
+        let tag = html.select(&selector).collect::<Vec<_>>()[0];
 
-        match elem.inner_html().unwrap().as_str() {
+        let level = match tag.inner_html().as_str() {
             "N1" => JlptLevel::N1,
             "N2" => JlptLevel::N2,
             "N3" => JlptLevel::N3,
             "N4" => JlptLevel::N4,
             "N5" => JlptLevel::N5,
             _ => panic!("Incorrect JLPT level"),
-        }
+        };
+
+        level
     }
 
     /// Scrapes number of `strokes`
-    fn stroke_count(&self) -> u32 {
-        let elem = self
-            .driver
-            .find_element(By::Css("div.kanji-details__stroke_count strong"))
-            .unwrap();
+    fn stroke_count(html: &Html) -> u32 {
+        let selector = Selector::parse("div.kanji-details__stroke_count strong").unwrap();
+        let text = html.select(&selector).collect::<Vec<_>>()[0];
 
-        elem.inner_html().unwrap().parse().unwrap()
+        text.inner_html().parse().unwrap()
     }
 
     /// Scrapes `meaning`
-    fn meaning(&self) -> String {
-        let elem = self
-            .driver
-            .find_element(By::Css("div.kanji-details__main-meanings"))
-            .unwrap();
+    fn meaning(html: &Html) -> String {
+        let selector = Selector::parse("div.kanji-details__main-meanings").unwrap();
+        let text = html.select(&selector).collect::<Vec<_>>()[0];
 
-        elem.inner_html().unwrap().replace("\n", "").trim().into()
+        text.inner_html().replace("\n", "").trim().into()
     }
 
     /// Scrapes `kunyomi`
-    fn kunyomi(&self) -> Vec<String> {
-        self.extract_yomi("div.kanji-details__main-readings dl.dictionary_entry.kun_yomi a")
+    fn kunyomi(html: &Html) -> Vec<String> {
+        let selector =
+            Selector::parse("div.kanji-details__main-readings dl.dictionary_entry.kun_yomi a")
+                .unwrap();
+        Self::extract_yomi(html, &selector)
     }
 
-    /// Scrapes `onyomi` and `kunyomi` examples. Returns in that order.
-    fn extract_examples(&self) -> (Vec<YomiExample>, Vec<YomiExample>) {
-        let elems = self
-            .driver
-            .find_elements(By::Css(
-                "div.small-12.columns div.row.compounds div.small-12.large-6.columns",
-            ))
-            .unwrap();
+    /// Scrapes `onyomi`
+    fn onyomi(html: &Html) -> Vec<String> {
+        let selector =
+            Selector::parse("div.kanji-details__main-readings dl.dictionary_entry.on_yomi a")
+                .unwrap();
+        Self::extract_yomi(html, &selector)
+    }
+
+    /// Helper function to extract `kunyomi` and `onyomi`
+    fn extract_yomi(html: &Html, selector: &Selector) -> Vec<String> {
+        let elems = html.select(selector).collect::<Vec<_>>();
+
+        elems.iter().map(|e| String::from(e.inner_html())).collect()
+    }
+
+    /// Scrapes `onyomi` and `kunyomi`and returns them, respectively.
+    fn extract_examples(html: &Html) -> (Vec<YomiExample>, Vec<YomiExample>) {
+        let selector =
+            Selector::parse("div.small-12.columns div.row.compounds div.small-12.large-6.columns")
+                .unwrap();
+        let columns = html.select(&selector).collect::<Vec<_>>();
 
         // There's always 2 columns
-        let onyomi_column = elems.get(0).unwrap();
-        let kunyomi_column = elems.get(1).unwrap();
+        let onyomi_column = columns.get(0).unwrap();
+        let kunyomi_column = columns.get(1).unwrap();
 
         // TODO: Refactor it later. I'll be ashamed if someone else see this...
-        let elems = onyomi_column
-            .find_elements(By::Css("ul.no-bullet li"))
-            .unwrap();
+        let onyomi_selector = Selector::parse("ul.no-bullet li").unwrap();
+        let elems = onyomi_column.select(&onyomi_selector).collect::<Vec<_>>();
         let onyomi = elems.iter().map(|e| YomiExample::new(e)).collect();
 
-        let elems = kunyomi_column
-            .find_elements(By::Css("ul.no-bullet li"))
-            .unwrap();
+        let kunyomi_selector = Selector::parse("ul.no-bullet li").unwrap();
+        let elems = kunyomi_column.select(&kunyomi_selector).collect::<Vec<_>>();
         let kunyomi = elems.iter().map(|e| YomiExample::new(e)).collect();
 
         (onyomi, kunyomi)
     }
 
-    /// Scrapes `onyomi`
-    fn onyomi(&self) -> Vec<String> {
-        self.extract_yomi("div.kanji-details__main-readings dl.dictionary_entry.on_yomi a")
-    }
-
     /// Scrapes parts that kanji is build up
-    fn kanji_parts(&self) -> Vec<String> {
-        self.extract_yomi("div.radicals dl.dictionary_entry.on_yomi dd a")
-    }
-
-    /// Helper function to extract `kunyomi` and `onyomi`
-    fn extract_yomi(&self, css_locator: &str) -> Vec<String> {
-        let elems = self.driver.find_elements(By::Css(css_locator)).unwrap();
-
-        elems
-            .iter()
-            .map(|e| String::from(e.inner_html().unwrap()))
-            .collect()
-    }
-
-    pub fn search_for_examples(&self, kanji: String) -> Vec<Sentence> {
-        let url = format!("{}/{}%23sentences", SCRAPE_BASE_URI, kanji);
-        info!("url: {}", url);
-        self.driver.get(url).unwrap();
-
-        let divs = self
-            .driver
-            .find_elements(By::ClassName("div.sentence_content"))
-            .unwrap();
-        divs.iter()
-            .map(|div| Sentence::new(&div))
-            .collect()
+    fn kanji_parts(html: &Html) -> Vec<String> {
+        let selector = Selector::parse("div.radicals dl.dictionary_entry.on_yomi dd a").unwrap();
+        Self::extract_yomi(html, &selector)
     }
 }
