@@ -1,4 +1,6 @@
-# About
+![Jisho's logo](https://raw.githubusercontent.com/mistval/unofficial-jisho-api/master/logo.png)
+
+# unofficial jisho api
 I'm really excited about Rust and really enjoying programming on it.
 That's also my first time uploading and contributing to the community.
 
