@@ -9,7 +9,7 @@ use std::collections::HashMap;
 use regex::Regex;
 use reqwest::Error;
 use scraper::{ElementRef, Html, Selector};
-use soup::{pattern::Pattern, NodeExt, QueryBuilderExt, Soup};
+use soup::{NodeExt, QueryBuilderExt, Soup};
 
 const SCRAPE_BASE_URI: &'static str = "https://jisho.org/search/";
 

@@ -155,8 +155,6 @@ mod tests {
         let results = JishoAPI::search_for_examples("真".into()).unwrap();
         let result = results.get(0).unwrap();
 
-        println!("{:?}", result.pieces);
-
         assert_eq!(result.kanji, "画像編集ソフトを使って、2枚の写真を合成した。");
         assert_eq!(result.kana,  "画像編集ソフトを使って、にまいの写真を合成した。");
         assert_eq!(result.english, "The two photos were combined using image editing software.");
@@ -167,7 +165,7 @@ mod tests {
 
         let result = results.get(1).unwrap();
         assert_eq!(result.kanji, "真面目な人ほどストレスを溜めやすいので、適度な息抜きが必要だ。");
-        assert_eq!(result.kana,  "まじめな人ほどストレスをたやすいので、適度ないきぬが必要だ。");
+        assert_eq!(result.kana,  "まじめな人ほどストレスをためやすいので、適度ないきぬきが必要だ。");
         assert_eq!(result.english, "Serious people are more prone to accumulating stress; thus, they need proper breaks for relaxation.");
     }
 }
