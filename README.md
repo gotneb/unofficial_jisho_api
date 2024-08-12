@@ -6,6 +6,23 @@ That's also my first time uploading and contributing to the community.
 
 If you have any improvements please submit a pull request. I'll be glad learning and getting in touch with other developers.
 
+## Example
+```rust
+  let result = JishoAPI::search_kanji("語".into()).unwrap();
+
+  println!("Grade: {}", result.taught);
+  println!("Level: {:?}", result.jlpt_level);
+  println!("Stroke numbers: {}", result.stroke_count);
+  println!("Meaning: {}", result.meaning);
+  println!("Kunyomi: {:?}", result.kunyomi);
+  println!("Onyomi: {:?}", result.onyomi);
+  println!("Kanji parts: {:?}", result.parts);
+
+  println!("Kanji: {:?}", result.kunyomi_examples[0].kanji);
+  println!("Hiragana: {:?}", result.kunyomi_examples[0].hiragana);
+  println!("Meaning: {:?}", result.kunyomi_examples[0].meaning);
+```
+
 ## Permission
 Permission to scrape granted by Jisho's admin Kimtaro:
 ```
