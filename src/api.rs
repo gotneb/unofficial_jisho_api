@@ -6,9 +6,10 @@
 
 use std::collections::HashMap;
 
+use regex::Regex;
 use reqwest::Error;
 use scraper::{ElementRef, Html, Selector};
-use soup::{NodeExt, QueryBuilderExt, Soup};
+use soup::{pattern::Pattern, NodeExt, QueryBuilderExt, Soup};
 
 const SCRAPE_BASE_URI: &'static str = "https://jisho.org/search/";
 
@@ -47,11 +48,13 @@ impl YomiExample {
     }
 }
 
+#[derive(Debug)]
 pub struct Piece {
     pub lifted: String,
     pub unlifted: String,
 }
 
+#[derive(Debug)]
 pub struct KanjiExample {
     pub english: String,
     pub kanji: String,
@@ -77,6 +80,7 @@ impl KanjiExample {
     }
 
     fn get_kanji_kana_and_pieces(ul: &ElementRef) -> (String, String, Vec<Piece>) {
+        let kanji_regex = Regex::new(r#"/[\u4e00-\u9faf\u3400-\u4dbf々]/g"#).unwrap();
         let soup = Soup::new(&ul.inner_html());
 
         // That's unefficient... It returns the whole phrase with furigana and kanji together...
