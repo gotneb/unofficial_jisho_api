@@ -1,10 +1,12 @@
 ![Jisho's logo](https://raw.githubusercontent.com/mistval/unofficial-jisho-api/master/logo.png)
 
 # unofficial jisho api
-I'm really excited about Rust and really enjoying programming on it.
+I'm excited about Rust and really enjoying programming on it.
 That's also my first time uploading and contributing to the community.
 
 If you have any improvements please submit a pull request. I'll be glad learning and getting in touch with other developers.
+
+That was inspired and an attempt to rewrite [Mistval's unofficial jisho api.](https://github.com/mistval/unofficial-jisho-api)
 
 ## Example
 ```rust
